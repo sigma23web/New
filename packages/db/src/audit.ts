@@ -80,7 +80,37 @@ export interface LlmCallInsert {
   artifactRef?: unknown;
 }
 
+/**
+ * Two callers reached the same activity concurrently, so both produced a successful call for one
+ * idempotency key. The partial unique index `llm_calls_idempotency_succeeded` is what makes that impossible
+ * to record twice — it is the audit's exactly-once guarantee, not a bug. The loser must see a TYPED
+ * retriable conflict: its work is already recorded by the winner, so retrying reads that record instead of
+ * spending again. A raw duplicate-key error escaping here would surface as an opaque INTERNAL failure.
+ */
+export class DuplicateCallError extends Error {
+  constructor(readonly idempotencyKey: string) {
+    super(
+      `DUPLICATE_CALL: a successful call for idempotency key ${idempotencyKey} is already recorded; retry to read it`,
+    );
+    this.name = 'DuplicateCallError';
+  }
+}
+
+function isUniqueViolation(err: unknown, constraint: string): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const e = err as { code?: unknown; constraint?: unknown };
+  return e.code === '23505' && e.constraint === constraint;
+}
+
 export async function insertLlmCall(pool: Pool, r: LlmCallInsert): Promise<void> {
+  await insertLlmCallRow(pool, r).catch((err: unknown) => {
+    if (isUniqueViolation(err, 'llm_calls_idempotency_succeeded'))
+      throw new DuplicateCallError(r.idempotencyKey);
+    throw err;
+  });
+}
+
+async function insertLlmCallRow(pool: Pool, r: LlmCallInsert): Promise<void> {
   await pool.query(
     `INSERT INTO llm_calls (id, workspace_id, project_id, job_id, activity_id, idempotency_key, role, prompt_version_id, prompt_hash, pack_id, pack_hash,
        production_policy_version, narrative_identity_version_id, narrative_block_hash, output_language_contract_hash, tradition_contract_hash,

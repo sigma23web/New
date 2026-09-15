@@ -42,6 +42,14 @@ export interface ProductionPolicy {
      */
     early_stop_margin_points: number;
     judge_families_differ_from_writer?: boolean;
+    /**
+     * Authorizes the deterministic ADR-0015 tie ladder (higher gated-dimension total → fewer patches → lower candidate slot) to decide a pair the position-swapped comparator could not separate. When false, an unresolved pair ends the selection in needs_attention instead of being decided by a fallback. This is the ONLY authorization for the ladder; no other policy field may be read as implying it.
+     */
+    tie_fallback_ladder_authorized?: boolean;
+    /**
+     * How N candidates are reduced to one. stable_slot_single_elimination: candidates are ordered by their stable slot and reduced by sequential single elimination. The outcome is deterministic FOR THIS PINNED SCHEDULE and the schedule is persisted as provenance; it is not a claim of schedule-independent global optimality, because the pairwise comparator is not guaranteed transitive (ADR-0015).
+     */
+    selection_schedule?: 'stable_slot_single_elimination';
   };
   /**
    * Per-dimension acceptance. auto_approvable = all deterministic criteria pass AND blocking_count = 0 AND major_count = 0 AND every listed dimension score >= its threshold. No aggregate score is ever used.

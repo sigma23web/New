@@ -52,7 +52,9 @@ packages/gateway    fail-closed Narrative Identity Guard, routing table, budget 
                     repair, truncation handling, output-language discard→regenerate→reroute, idempotent audit;
                     MockProvider (fault injection) and ReplayProvider (no silent live calls)
 packages/db         migrations (forward-only, hashed; 0004 = jobs workflow_id/idempotency/pins, workflow_artifacts,
-                    context packs, embedding sets), pool/transaction helpers, typed repository over the canon
+                    context packs, embedding sets; 0005 = candidate_selections, the durable N-candidate decision
+                    whose row and loser transitions commit in one transaction), pool/transaction helpers,
+                    typed repository over the canon
                     schema; canon.commit_delta / canon.rollback_latest are the only canon write paths;
                     retrieval.ts = accepted-only reads for context assembly
 packages/canon      deterministic delta verification (schema, evidence, change-class, frame × timeline, future
