@@ -95,12 +95,17 @@ Items marked **[CP7]** were moved out of the first proof of the core loop (API, 
 
 ## Checkpoint 6 — Quality and long-form validation (additions)
 
+Status for these four items is recorded in `09-progress.md` (ADR-0043), including where delivery is
+narrower than the wording below. B-6-1 now covers three chapters (ch.1 → ch.2 → ch.3). B-6-3 grows the
+corpus but does **not** run the judge calibration, which is B-4-5. B-6-4 delivers enforceable N-candidate
+selection; default production under `standard.v1` still generates one candidate.
+
 | ID | P | Item | Refs | Acceptance | Est |
 | --- | --- | --- | --- | --- | --- |
 | B-6-1 | P0 | Multi-chapter continuity test on the fixture (ch.1 → ch.2 → … remembers committed state, tail and hook) | brief §10 | pack contains k−1 summary/tail/hook/deltas; ch.2 draft cites ch.1 state | 4d |
 | B-6-2 | P0 | Failure-recovery tests: commit fault, stale canon, provider fault, resume from checkpoint | NFR-B | no partial canon; exactly-once bump | 3d |
 | B-6-3 | P0 | Grow the contrast set from the 4 starter sets to ≥ 40 original, diverse sets (all four MVP genres × functions: hook, emotional beat, banter, status window, reveal, ending, exposition, action) with expectations; no filler | ADR-0043, ADR-0029 | validator count check; judge calibration run recorded | 6d |
-| B-6-4 | P0 | Candidate comparison + patch regression suites on replay | FR-4.5, ADR-0014/0015 | position-bias both orders; no cross-dimension regression | 3d |
+| B-6-4 | P0 | Candidate comparison, N-candidate selection + patch regression suites on replay | FR-4.5, ADR-0014/0015 | position-bias both orders; no cross-dimension regression; the selected winner enforced at approval **and** independently at canon acceptance; losers never reach canon, summaries, retrieval, dependency edges or export | 3d |
 
 ## Phase 4 — Hardening
 

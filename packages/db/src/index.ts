@@ -4,3 +4,5 @@ export * from './repo.js';
 export * from './audit.js';
 export * from './retrieval.js';
 export * from './workflow.js';
+export * from './selection.js';
+export * from './identity.js';

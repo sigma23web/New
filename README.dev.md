@@ -43,7 +43,12 @@ pnpm cli export:accepted <projectId>                # accepted chapter 1 summary
 ## Layout (ADR-0021, ADR-0044)
 
 ```
-apps/cli            operator surface for the core loop (first app; API/web/worker come in Checkpoint 7)
+apps/cli            operator surface for the core loop (first app, ADR-0044)
+apps/api            Checkpoint 7 Fastify /v1 operator API: session/API-key auth, membership-derived
+                    authorization, RLS-scoped requests, RFC 9457 problem details, Idempotency-Key,
+                    cursor pagination, security headers, health/readiness, audit log. A thin adapter
+                    over packages/* — it holds no canon, selection or workflow logic of its own.
+                    (apps/web and apps/worker remain outstanding Checkpoint 7 scope.)
 packages/prose      NFC boundary, code-point addressing, evidence verification, paragraphs, length model,
                     deterministic output-language check
 packages/domain     schema loader + Ajv validators, generated types, UUIDv7, StoryClock ordering,
@@ -52,7 +57,12 @@ packages/gateway    fail-closed Narrative Identity Guard, routing table, budget 
                     repair, truncation handling, output-language discard→regenerate→reroute, idempotent audit;
                     MockProvider (fault injection) and ReplayProvider (no silent live calls)
 packages/db         migrations (forward-only, hashed; 0004 = jobs workflow_id/idempotency/pins, workflow_artifacts,
-                    context packs, embedding sets), pool/transaction helpers, typed repository over the canon
+                    context packs, embedding sets; 0005 = candidate_selections, the durable N-candidate decision
+                    whose row and loser transitions commit in one transaction; 0006 = users/workspace_members/
+                    sessions/api_keys, row-level security on every workspace-owned table plus the non-superuser
+                    role yeonjae_app the application runs as, api_idempotency_keys, job control columns, the
+                    append-only job_events log and exports), identity/session helpers, pool/transaction helpers,
+                    typed repository over the canon
                     schema; canon.commit_delta / canon.rollback_latest are the only canon write paths;
                     retrieval.ts = accepted-only reads for context assembly
 packages/canon      deterministic delta verification (schema, evidence, change-class, frame × timeline, future

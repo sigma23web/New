@@ -52,7 +52,16 @@
           "minimum": 0,
           "description": "Stop generating further candidates when an auto-approvable candidate exceeds EVERY gated dimension's threshold by at least this margin (per dimension; never an aggregate)"
         },
-        "judge_families_differ_from_writer": {"type": "boolean"}
+        "judge_families_differ_from_writer": {"type": "boolean"},
+        "tie_fallback_ladder_authorized": {
+          "type": "boolean",
+          "description": "Authorizes the deterministic ADR-0015 tie ladder (higher gated-dimension total → fewer patches → lower candidate slot) to decide a pair the position-swapped comparator could not separate. When false, an unresolved pair ends the selection in needs_attention instead of being decided by a fallback. This is the ONLY authorization for the ladder; no other policy field may be read as implying it."
+        },
+        "selection_schedule": {
+          "type": "string",
+          "enum": ["stable_slot_single_elimination"],
+          "description": "How N candidates are reduced to one. stable_slot_single_elimination: candidates are ordered by their stable slot and reduced by sequential single elimination. The outcome is deterministic FOR THIS PINNED SCHEDULE and the schedule is persisted as provenance; it is not a claim of schedule-independent global optimality, because the pairwise comparator is not guaranteed transitive (ADR-0015)."
+        }
       }
     },
     "gates": {

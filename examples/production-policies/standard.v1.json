@@ -3,7 +3,7 @@
   "version": 1,
   "quality_tier": "standard",
   "name": "Standard tier production policy (starting values)",
-  "content_hash": "sha256:3edf124e9040417cf8403c5c9667d5e07e6dcf876d180b51a002d8b500296c35",
+  "content_hash": "sha256:54d8e9ece695727db761981483f34a15230746a538504105ce70da4ae3ad779a",
   "revision": {
     "max_rounds": 3,
     "max_patches_per_round": 6,
@@ -17,7 +17,9 @@
     "concept_candidates": 2,
     "arc_candidates": 2,
     "early_stop_margin_points": 6,
-    "judge_families_differ_from_writer": true
+    "judge_families_differ_from_writer": true,
+    "tie_fallback_ladder_authorized": true,
+    "selection_schedule": "stable_slot_single_elimination"
   },
   "gates": {
     "dimensions": {

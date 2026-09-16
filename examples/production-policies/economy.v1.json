@@ -3,7 +3,7 @@
   "version": 1,
   "quality_tier": "economy",
   "name": "Economy tier production policy (starting values)",
-  "content_hash": "sha256:dc55ea1993419e8ae98a9fce138be9bf234a4f665ee462df6810aea662442508",
+  "content_hash": "sha256:22563c2705fb3a8ff3a7f315cfce73e5e9fa661c5337c61d4cc37711793f7201",
   "revision": {
     "max_rounds": 2,
     "max_patches_per_round": 6,
@@ -17,7 +17,9 @@
     "concept_candidates": 2,
     "arc_candidates": 1,
     "early_stop_margin_points": 6,
-    "judge_families_differ_from_writer": false
+    "judge_families_differ_from_writer": false,
+    "tie_fallback_ladder_authorized": true,
+    "selection_schedule": "stable_slot_single_elimination"
   },
   "gates": {
     "dimensions": {

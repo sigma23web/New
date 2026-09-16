@@ -18,7 +18,11 @@ export type WorkflowErrorCode =
   | 'OUTPUT_LANGUAGE_FAILED'
   | 'EVALUATION_FAILED'
   | 'APPROVAL_BLOCKED'
+  | 'SELECTION_CONFLICT'
+  | 'SELECTION_REQUEST_CHANGED'
+  | 'CONCURRENT_CALL'
   | 'REVISION_LIMIT'
+  | 'PATCH_REGRESSED'
   | 'PATCH_UNANCHORED'
   | 'NOT_EXTRACTABLE'
   | 'EXTRACTION_REJECTED'
@@ -120,6 +124,15 @@ export function asWorkflowError(err: unknown, step: string): WorkflowError {
       step,
       data: { gateway_error: code },
       recommendedActions: code.startsWith('BUDGET') ? ['raise_budget'] : ['retry_step'],
+      cause: err,
+    });
+  // A concurrent caller already recorded a successful call for this idempotency key. The work is not lost:
+  // retrying reads the recorded call instead of spending again, so this is retriable, never an INTERNAL.
+  if (code === 'DUPLICATE_CALL' || message.startsWith('DUPLICATE_CALL:'))
+    return new WorkflowError('CONCURRENT_CALL', message, {
+      step,
+      data: { concurrent: true },
+      recommendedActions: ['retry_step'],
       cause: err,
     });
   if (message.startsWith('ReplayProvider:'))

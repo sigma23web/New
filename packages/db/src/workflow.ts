@@ -306,11 +306,15 @@ export async function putArtifact(
       );
     return { artifact: prior, stored: false };
   }
+  // Two conflict targets, both legitimate: the address (project, step, kind, key) and the content-addressed
+  // primary key, which two concurrent callers computing the SAME payload will derive identically. Neither is
+  // an error — the row already exists and is byte-identical — so both are absorbed here rather than escaping
+  // as a raw duplicate-key failure. The re-read below returns the committed row.
   const r = await db
     .query<ArtifactRow>(
       `INSERT INTO workflow_artifacts (id, workspace_id, project_id, job_id, step, kind, key, schema, content_hash, payload)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
-       ON CONFLICT (project_id, step, kind, key) DO NOTHING
+       ON CONFLICT DO NOTHING
        RETURNING *`,
       [
         id,
@@ -332,7 +336,9 @@ export async function putArtifact(
     'SELECT * FROM workflow_artifacts WHERE project_id = $1 AND step = $2 AND kind = $3 AND key = $4',
     [input.projectId, input.step, input.kind, input.key],
   );
-  const found = again.rows[0];
+  const found =
+    again.rows[0] ??
+    (await db.query<ArtifactRow>('SELECT * FROM workflow_artifacts WHERE id = $1', [id])).rows[0];
   if (!found) throw new Error('artifact insert raced and vanished');
   return { artifact: found, stored: false };
 }

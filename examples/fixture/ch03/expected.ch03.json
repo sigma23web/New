@@ -1,0 +1,18 @@
+{
+  "contract_id": "0191b2a0-0000-7000-8000-000000070003",
+  "assembled_code_points": 5103,
+  "assembled_paragraphs": 39,
+  "words": 934,
+  "scene_words": [
+    431,
+    503
+  ],
+  "ending_hook": "Across the yard, Yoon Ha-eun stood at the hall door with her tablet against her hip, watching the two of them the way a surveyor watches a ceiling.",
+  "summary_l1": "The morning after the Mapo run. The Association suspends Gate 3 pending reinspection because of the anomalous cores, and Do-yoon realises his own success changed a future he was relying on. A survey-division officer questions him about the third chamber and he gives her nothing. In the yard Mu-jin presses him directly, is refused, and keeps him at eighteen percent anyway. Do-yoon reaches for Thursday and finds no memory of it at all.",
+  "delta_items": 4,
+  "item_counts": {
+    "event": 2,
+    "fact": 1,
+    "promise_event": 1
+  }
+}

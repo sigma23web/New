@@ -80,6 +80,22 @@ export class ReplayProvider implements Provider {
     return this;
   }
 
+  /**
+   * Remove a recording and return it, so a test can create a GENUINE replay miss on the context that is
+   * actually executing and restore it afterwards. Returns `undefined` when the key was not recorded.
+   */
+  remove(key: string): Recording | undefined {
+    const rec = this.recordings.get(key);
+    this.recordings.delete(key);
+    return rec;
+  }
+
+  /** Restore a recording removed by `remove`. */
+  restore(key: string, recording: Recording): this {
+    this.recordings.set(key, recording);
+    return this;
+  }
+
   private bind(rec: Recording): Recording {
     const table = this.bindings?.() ?? {};
     const serialized = JSON.stringify(rec);

@@ -1,18 +1,32 @@
 /**
- * Harness for the Checkpoint 5 replay fixture (examples/fixture/ch01): a project pinned to the fixture
- * identity and the standard policy, a ReplayProvider over `replay.ch01.json`, and a Gateway wired to the
- * Postgres audit store with the artifact-backed output store. No live provider is ever configured.
+ * Harness for the replay fixtures under examples/fixture/: a project pinned to the fixture identity and the
+ * standard policy, a ReplayProvider over the chapter recordings, and a Gateway wired to the Postgres audit
+ * store with the artifact-backed output store. No live provider is ever configured.
+ *
+ * Chapters 1, 2 and 3 live in one project and one recording table (Checkpoint 6, B-6-1): chapter 1's fixture
+ * already carries chapter 2's locked contract, `replay.ch02.json` adds chapter 2's own plan, drafts,
+ * evaluators, extraction and summary, and `replay.ch03.json` adds chapter 3's OWN contract as well as its
+ * plan, drafts, evaluators, extraction and summary. Loading all three is what lets the 1 → 2 → 3 continuity
+ * chain run end to end.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createProject, createWorkspace, PgAuditStore, type Pool } from '@yeonjae/db';
-import { Gateway, MemoryBudget, ReplayProvider, type RoutingTable } from '@yeonjae/gateway';
+import {
+  Gateway,
+  MemoryBudget,
+  ReplayProvider,
+  type Recording,
+  type RoutingTable,
+} from '@yeonjae/gateway';
 import { type ChapterProductionInput } from './chapter-production.js';
 import { type StoryBible } from './planning.js';
 import { ArtifactLlmOutputStore } from './runtime.js';
 
 export const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 export const FIXTURE_DIR = `${ROOT}examples/fixture/ch01/`;
+export const FIXTURE_DIR_CH02 = `${ROOT}examples/fixture/ch02/`;
+export const FIXTURE_DIR_CH03 = `${ROOT}examples/fixture/ch03/`;
 
 export const IDS = JSON.parse(readFileSync(`${FIXTURE_DIR}ids.ch01.json`, 'utf8')) as Record<
   string,
@@ -24,6 +38,33 @@ export const INTAKE = JSON.parse(
 export const BIBLE = JSON.parse(
   readFileSync(`${FIXTURE_DIR}story-bible.ch01.json`, 'utf8'),
 ) as StoryBible;
+export const EXPECTED_CH02 = JSON.parse(
+  readFileSync(`${FIXTURE_DIR_CH02}expected.ch02.json`, 'utf8'),
+) as {
+  assembled_code_points: number;
+  assembled_paragraphs: number;
+  words: number;
+  scene_words: number[];
+  ending_hook: string;
+  summary_l1: string;
+  delta_items: number;
+  item_counts: Record<string, number>;
+};
+
+export const EXPECTED_CH03 = JSON.parse(
+  readFileSync(`${FIXTURE_DIR_CH03}expected.ch03.json`, 'utf8'),
+) as {
+  contract_id: string;
+  assembled_code_points: number;
+  assembled_paragraphs: number;
+  words: number;
+  scene_words: number[];
+  ending_hook: string;
+  summary_l1: string;
+  delta_items: number;
+  item_counts: Record<string, number>;
+};
+
 export const EXPECTED = JSON.parse(readFileSync(`${FIXTURE_DIR}expected.ch01.json`, 'utf8')) as {
   assembled_code_points: number;
   revised_code_points: number;
@@ -59,8 +100,29 @@ export const REPLAY_ROUTING: RoutingTable = {
   E: [],
 };
 
+/**
+ * One provider over both chapters' recordings. Keys are activity ids, which already carry the chapter
+ * number, so the two files cannot collide; a duplicate key would be a fixture bug and is rejected here.
+ */
 export function replayProvider(bindings: () => Readonly<Record<string, string>>): ReplayProvider {
-  return ReplayProvider.fromFile(`${FIXTURE_DIR}replay.ch01.json`, { name: 'replay', bindings });
+  const ch01 = JSON.parse(readFileSync(`${FIXTURE_DIR}replay.ch01.json`, 'utf8')) as Record<
+    string,
+    Recording
+  >;
+  const ch02 = JSON.parse(readFileSync(`${FIXTURE_DIR_CH02}replay.ch02.json`, 'utf8')) as Record<
+    string,
+    Recording
+  >;
+  const ch03 = JSON.parse(readFileSync(`${FIXTURE_DIR_CH03}replay.ch03.json`, 'utf8')) as Record<
+    string,
+    Recording
+  >;
+  const merged = new Map<string, Recording>(Object.entries(ch01));
+  for (const [key, value] of [...Object.entries(ch02), ...Object.entries(ch03)]) {
+    if (merged.has(key)) throw new Error(`duplicate replay recording key across fixtures: ${key}`);
+    merged.set(key, value);
+  }
+  return new ReplayProvider(merged, { name: 'replay', bindings });
 }
 
 export interface Harness {
@@ -70,7 +132,7 @@ export interface Harness {
   readonly mainTimelineId: string;
   readonly provider: ReplayProvider;
   readonly bindings: Record<string, string>;
-  gateway(jobScope?: { jobId?: string | undefined }): Gateway;
+  gateway(options?: { budgetCents?: number | undefined }): Gateway;
   input(chapterNo: number, extra?: Partial<ChapterProductionInput>): ChapterProductionInput;
 }
 
@@ -93,11 +155,13 @@ export async function createHarness(pool: Pool, title = 'Second Awakening'): Pro
     mainTimelineId,
     provider,
     bindings,
-    gateway() {
+    gateway(options = {}) {
       return new Gateway({
         providers: new Map([['replay', provider]]),
         routing: REPLAY_ROUTING,
-        budget: new MemoryBudget(1_000_000),
+        // A test that proves the budget boundary needs to set a real limit; the default is effectively
+        // unlimited so every other fixture run is unaffected.
+        budget: new MemoryBudget(options.budgetCents ?? 1_000_000),
         audit: new PgAuditStore(
           pool,
           { workspaceId, projectId },
@@ -116,7 +180,12 @@ export async function createHarness(pool: Pool, title = 'Second Awakening'): Pro
         ids: {
           arcId: IDS.arc1 ?? '',
           seasonId: IDS.season1 ?? '',
-          contractId: chapterNo === 1 ? (IDS.contract1 ?? '') : (IDS.contract2 ?? ''),
+          contractId:
+            chapterNo === 1
+              ? (IDS.contract1 ?? '')
+              : chapterNo === 2
+                ? (IDS.contract2 ?? '')
+                : (IDS.contract3 ?? ''),
         },
         ...extra,
       };

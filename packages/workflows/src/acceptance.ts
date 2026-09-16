@@ -28,6 +28,7 @@ import { checkpointPack, packCallInput, type StoredPack } from './drafting.js';
 import { type Scorecard } from './evaluation.js';
 import { WorkflowError } from './errors.js';
 import { type ChapterContract, type StorySpec, compileFor } from './planning.js';
+import { requireSelectedWinner } from './selection.js';
 import { bind, modelCall, runStep, saveArtifact, type WorkflowContext } from './runtime.js';
 
 export type CanonDelta = Generated.CanonDeltaSchema.CanonDelta;
@@ -46,6 +47,15 @@ export async function approveVersion(
     ctx,
     'approve',
     async () => {
+      // Winner-only propagation, enforced HERE rather than by an optional helper the caller may skip.
+      // Whether a selection is required is decided from the pinned policy and durable candidate state, so a
+      // direct call to approveVersion with a loser cannot bypass it.
+      await requireSelectedWinner(ctx, {
+        chapterNo: input.chapterNo,
+        chapterId: input.chapterId,
+        manuscriptVersionId: input.version.id,
+        step: 'approve',
+      });
       if (!input.scorecard.acceptance.auto_approvable) {
         const blocking = input.scorecard.issues.filter(
           (i) => i.severity === 'blocking' || i.severity === 'major',
@@ -193,6 +203,9 @@ export interface AcceptanceResult {
  * Verify (deterministic verifier: schema, evidence spans against NFC code points, frame × timeline, future
  * validity, unknown entities, planned-frame rejection) and commit atomically. `acceptChapter` reads the
  * approved version itself and rejects any other status.
+ *
+ * Canon acceptance verifies the selected winner INDEPENDENTLY of approval (it does not assume approval ran
+ * or ran correctly), so a direct call with a loser commits nothing.
  */
 export async function acceptDelta(
   ctx: WorkflowContext,
@@ -208,6 +221,12 @@ export async function acceptDelta(
     ctx,
     'accept',
     async () => {
+      await requireSelectedWinner(ctx, {
+        chapterNo: input.contract.chapter_number,
+        chapterId: input.chapterId,
+        manuscriptVersionId: input.versionId,
+        step: 'accept',
+      });
       const version = await getManuscriptVersion(ctx.pool, input.versionId);
       if (!version) throw new WorkflowError('INTERNAL', 'version not found', { step: 'accept' });
       if (version.status === 'accepted' && version.accepted_commit_id) {
